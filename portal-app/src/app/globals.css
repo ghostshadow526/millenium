@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+section {
+  @apply py-20;
+}
+
+@layer base {
+  html, body { @apply bg-slateGray text-midnight_text min-h-screen; }
+}
+
+@layer components {
+  .card { @apply bg-white border border-gray-200 rounded-xl p-6 shadow-lg; }
+  .btn { @apply inline-flex items-center gap-2 font-semibold px-6 py-3 rounded-full text-base transition focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60 disabled:cursor-not-allowed; }
+  .btn:not(.outline) { @apply bg-primary text-white hover:bg-primary/90; }
+  .btn.outline { @apply border border-primary/20 bg-primary/15 text-primary hover:bg-primary hover:text-white; }
+  .btn.secondary { @apply bg-secondary text-white hover:bg-secondary/90; }
+  .badge { @apply inline-block px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20; }
+  .table { @apply w-full border-collapse; }
+  .table th { @apply text-left text-sm font-semibold text-midnight_text pb-3 border-b border-gray-200; }
+  .table td { @apply py-3 text-sm border-b border-gray-100 align-middle; }
+  input[type='file'] { @apply text-sm; }
+  input, textarea, select { @apply bg-white border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary shadow-sm; }
+  textarea { @apply resize-y; }
+  .portal-header { @apply fixed top-0 z-40 w-full bg-white shadow-lg py-4; }
+  .portal-container { @apply container mx-auto lg:max-w-screen-xl md:max-w-screen-md px-4; }
+}
+
+.slick-dots {
+  color: #1A21BC;
+}
+
+.slick-dots li.slick-active button:before {
+  opacity: 1;
+  color: #1A21BC !important;
+}
+
+.slick-dots li button:before {
+  font-size: 11px !important;
+}
