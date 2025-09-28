@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -8,7 +8,7 @@ import { fetchStudent } from '@/lib/data';
 import { useAuth } from '@/contexts/AuthContext';
 import { Icon } from '@iconify/react';
 
-export default function LoginPage(){
+function LoginForm(){
   const search = useSearchParams();
   const initialRole = (search?.get('role') as 'parent'|'teacher'|'admin' | null) || 'parent';
   const [role, setRole] = useState<'parent'|'teacher'|'admin'>(initialRole);
@@ -151,5 +151,24 @@ export default function LoginPage(){
         </div>
       </div>
     </section>
+  );
+}
+
+export default function LoginPage(){
+  return (
+    <Suspense fallback={
+      <section className="bg-slateGray min-h-screen flex items-center justify-center">
+        <div className="portal-container">
+          <div className="max-w-md mx-auto">
+            <div className="card text-center">
+              <Icon icon="solar:loading-bold" className="text-4xl text-primary animate-spin mx-auto mb-4" />
+              <p className="text-grey">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

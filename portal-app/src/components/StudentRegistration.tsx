@@ -14,7 +14,7 @@ interface StudentRegistrationProps {
 }
 
 export default function StudentRegistration({ onStudentRegistered }: StudentRegistrationProps) {
-  const { user } = useAuth();
+  const { user, roleInfo } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -27,7 +27,7 @@ export default function StudentRegistration({ onStudentRegistered }: StudentRegi
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = roleInfo?.role === 'admin';
 
   const uploadToImgBB = async (file: File): Promise<string> => {
     const compressedFile = await compress(file, {
@@ -95,7 +95,7 @@ export default function StudentRegistration({ onStudentRegistered }: StudentRegi
         parentPhone: formData.parentPhone,
         parentEmail: formData.parentEmail,
         photoUrl,
-        registeredBy: user.role as 'admin' | 'teacher',
+                registeredBy: roleInfo?.role as 'admin' | 'teacher' || 'teacher',
         registeredByUid: user.uid,
         createdAt: new Date(),
         updatedAt: new Date(),
