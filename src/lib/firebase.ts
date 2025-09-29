@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // Use NEXT_PUBLIC_ envs for client-side Firebase config
@@ -16,5 +16,29 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Connectivity fallbacks for restrictive networks (ERR_CONNECTION_CLOSED)
+// Gate with env so we can toggle without code changes.
+const forceLongPolling = process.env.NEXT_PUBLIC_FIRESTORE_FORCE_LONG_POLLING === 'true';
+const autoDetect = process.env.NEXT_PUBLIC_FIRESTORE_AUTODETECT_STREAMING === 'true';
+
+let dbInstance;
+try {
+  if (forceLongPolling || autoDetect) {
+    dbInstance = initializeFirestore(app, {
+      experimentalForceLongPolling: forceLongPolling,
+      experimentalAutoDetectLongPolling: autoDetect,
+    });
+    // eslint-disable-next-line no-console
+    console.log('[firebase] Firestore initialized with options', { forceLongPolling, autoDetect });
+  } else {
+    dbInstance = getFirestore(app);
+  }
+} catch (err) {
+  // eslint-disable-next-line no-console
+  console.error('[firebase] Firestore init error, falling back to default', err);
+  dbInstance = getFirestore(app);
+}
+
+export const db = dbInstance as ReturnType<typeof getFirestore>;
 export const storage = getStorage(app);

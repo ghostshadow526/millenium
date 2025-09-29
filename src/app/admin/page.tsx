@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-import Protected from '@/components/portal/Protected';
+import Protected from '@/components/Protected';
 import { addStudent, searchStudents, fetchStudent, fetchStudentsPage } from '@/lib/data';
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -53,62 +53,63 @@ function AdminDashboard() {
 		setStudentResults(prev=>[...prev, ...students]); setPageCursor(cursor);
 	}
 
-	async function loadSearch() {
-		if (!studentSearch.trim()) { setStudentResults([]); return; }
-		const res = await searchStudents(studentSearch.trim());
-		setStudentResults(res);
-	}
+    async function loadSearch() {
+        if (!studentSearch.trim()) { setStudentResults([]); return; }
+        const res = await searchStudents(studentSearch.trim());
+        setStudentResults(res);
+    }
 
-	async function openEdit(id:string) {
-		const data = await fetchStudent(id);
-		if (!data) return;
-		setEditId(id); setEditFirst(data.firstName); setEditLast(data.lastName); setEditClass(data.classLevel); setEditMsg(null);
-	}
+<<<<<<< HEAD
+    async function openEdit(id:string) {
+        const data = await fetchStudent(id);
+        if (!data) return;
+        setEditId(id); setEditFirst(data.firstName); setEditLast(data.lastName); setEditClass(data.classLevel); setEditMsg(null);
+    }
 
-	async function saveEdit(e:React.FormEvent) {
-		e.preventDefault(); if(!editId) return;
-		try {
-			await setDoc(doc(db,'students', editId), { firstName: editFirst, lastName: editLast, classLevel: editClass }, { merge:true });
-			setEditMsg('Updated');
-			await loadSearch();
-			setTimeout(()=>setEditMsg(null), 1500);
-		} catch(err:any) { setEditMsg(err.message); }
-	}
+    async function saveEdit(e:React.FormEvent) {
+        e.preventDefault(); if(!editId) return;
+        try {
+            await setDoc(doc(db,'students', editId), { firstName: editFirst, lastName: editLast, classLevel: editClass }, { merge:true });
+            setEditMsg('Updated');
+            await loadSearch();
+            setTimeout(()=>setEditMsg(null), 1500);
+        } catch(err:any) { setEditMsg(err.message); }
+    }
 
-	async function deleteStudent(id:string) {
-		if (typeof window !== 'undefined' && !confirm('Delete student permanently?')) return;
-		try {
-			await setDoc(doc(db,'students', id), { deleted: true }, { merge:true });
-			setStudentResults(r=>r.filter(s=>s.id!==id));
-		} catch(err){ console.error(err); }
-	}
+    async function deleteStudent(id:string) {
+        if (typeof window !== 'undefined' && !confirm('Delete student permanently?')) return;
+        try {
+            await setDoc(doc(db,'students', id), { deleted: true }, { merge:true });
+            setStudentResults(r=>r.filter(s=>s.id!==id));
+        } catch(err){ console.error(err); }
+    }
 
-	async function createTeacher(e: React.FormEvent) {
-		e.preventDefault(); setTMsg(null);
-		try {
-			const cred = await createUserWithEmailAndPassword(auth, tEmail.trim(), tPassword);
-			await setDoc(doc(db,'users', cred.user.uid), { role:'teacher', classLevels: tClasses.split(',').map(c=>c.trim()).filter(Boolean) }, { merge:true });
-			setTMsg('Teacher account created');
-			setTEmail(''); setTPassword('');
-		} catch(err:any) {
-			setTMsg(err.message);
-		}
-	}
+    async function createTeacher(e: React.FormEvent) {
+        e.preventDefault(); setTMsg(null);
+        try {
+            const cred = await createUserWithEmailAndPassword(auth, tEmail.trim(), tPassword);
+            await setDoc(doc(db,'users', cred.user.uid), { role:'teacher', classLevels: tClasses.split(',').map(c=>c.trim()).filter(Boolean) }, { merge:true });
+            setTMsg('Teacher account created');
+            setTEmail(''); setTPassword('');
+        } catch(err:any) {
+            setTMsg(err.message);
+        }
+    }
 
-	const submit = async (e: React.FormEvent) => {
-		e.preventDefault(); setLoading(true); setResultMsg(null);
-		try {
-			const res = await addStudent({ firstName, lastName, classLevel, parentEmail: parentEmail || undefined, subjects: subjects.split(',').map(s=>s.trim()).filter(Boolean), photoFile });
-			setQr(res.qrDataUrl);
-			setGeneratedPassword(res.password);
-			setStudentId(res.student.id);
-			if (createParentAccount) {
-				try { await setDoc(doc(db,'parentInvites', res.student.id), { studentId: res.student.id, parentEmail: parentEmail || null, parentName: parentName || null, createdAt: Date.now() }); } catch {}
-			}
-			setResultMsg('Student created successfully. Share ID/password with parent.');
-			setFirstName(''); setLastName(''); setParentEmail(''); setSubjects('Mathematics, English'); setPhotoFile(undefined); setParentName('');
-		} catch (err:any) { setResultMsg(err.message || 'Failed to add student'); } finally { setLoading(false); }
-	};
+    const submit = async (e: React.FormEvent) => {
+        e.preventDefault(); setLoading(true); setResultMsg(null);
+        try {
+            const res = await addStudent({ firstName, lastName, classLevel, parentEmail: parentEmail || undefined, subjects: subjects.split(',').map(s=>s.trim()).filter(Boolean), photoFile });
+            setQr(res.qrDataUrl);
+            setGeneratedPassword(res.password);
+            setStudentId(res.student.id);
+            if (createParentAccount) {
+                try { await setDoc(doc(db,'parentInvites', res.student.id), { studentId: res.student.id, parentEmail: parentEmail || null, parentName: parentName || null, createdAt: Date.now() }); } catch {}
+            }
+            setResultMsg('Student created successfully. Share ID/password with parent.');
+            setFirstName(''); setLastName(''); setParentEmail(''); setSubjects('Mathematics, English'); setPhotoFile(undefined); setParentName('');
+        } catch (err:any) { setResultMsg(err.message || 'Failed to add student'); } finally { setLoading(false); }
+    };
 
 	return (
 		<div className="container mx-auto px-4 py-10 space-y-8">

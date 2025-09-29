@@ -1,0 +1,18 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/api/admin/backfill-student-names/route": "app/api/admin/backfill-student-names/route.js",
+  "/api/imagekit/upload/route": "app/api/imagekit/upload/route.js",
+  "/id/[studentId]/page": "app/id/[studentId]/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/parent/library/page": "app/parent/library/page.js",
+  "/parent/page": "app/parent/page.js",
+  "/student-id/[studentId]/page": "app/student-id/[studentId]/page.js",
+  "/student/library/page": "app/student/library/page.js",
+  "/student/page": "app/student/page.js",
+  "/teacher/attendance/page": "app/teacher/attendance/page.js",
+  "/teacher/page": "app/teacher/page.js",
+  "/teacher/students/[studentId]/page": "app/teacher/students/[studentId]/page.js",
+  "/teacher/students/page": "app/teacher/students/page.js"
+}

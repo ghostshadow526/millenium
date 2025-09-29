@@ -2,16 +2,16 @@
 import { useState, useEffect, Suspense } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, collection, query, where, limit } from 'firebase/firestore';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { fetchStudent } from '@/lib/data';
+// Student and ID-based parent login removed; parents now use email/password
 import { useAuth } from '@/contexts/AuthContext';
 import { Icon } from '@iconify/react';
 
 function LoginForm(){
   const search = useSearchParams();
-  const initialRole = (search?.get('role') as 'parent'|'teacher'|'admin'|'student' | null) || 'parent';
-  const [role, setRole] = useState<'parent'|'teacher'|'admin'|'student'>(initialRole);
+  const initialRole = (search?.get('role') as 'parent'|'teacher'|'admin' | null) || 'parent';
+  const [role, setRole] = useState<'parent'|'teacher'|'admin'>(initialRole);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,7 +20,6 @@ function LoginForm(){
   const { enableAdminOverride } = useAuth();
 
   useEffect(()=>{ const r = search?.get('role'); if (r && ['parent','teacher','admin'].includes(r)) setRole(r as any); }, [search]);
-  useEffect(()=>{ const r = search?.get('role'); if (r && ['parent','teacher','admin','student'].includes(r)) setRole(r as any); }, [search]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setError(null); setLoading(true);
@@ -31,22 +30,24 @@ function LoginForm(){
         router.push('/admin');
         return;
       }
-      if (role === 'parent') {
-        const student = await fetchStudent(password.trim());
-        if(!student) throw new Error('Invalid student ID');
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('parentSession', JSON.stringify({ studentId: student.id }));
-          localStorage.setItem('pendingRole','parent');
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const userRef = doc(db,'users', cred.user.uid);
+      const existing = await getDoc(userRef);
+      let studentIdFromDoc: string | undefined = existing.exists()? (existing.data() as any).studentId : undefined;
+      // If parent role and no linked studentId, try to discover by matching parentEmail
+      if (role === 'parent' && !studentIdFromDoc) {
+        const qs = await getDocs(query(collection(db,'students'), where('parentEmail','==', email.trim()), limit(1)));
+        if (!qs.empty) {
+          studentIdFromDoc = qs.docs[0].id;
         }
-        router.push('/parent');
-      } else {
-        const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-        await setDoc(doc(db,'users', cred.user.uid), { role }, { merge: true });
-        if (typeof window !== 'undefined') localStorage.setItem('pendingRole', role);
-        if (role === 'teacher') router.push('/teacher');
-        else if (role === 'admin') router.push('/admin');
-        else if (role === 'student') router.push('/student');
       }
+  const payload: any = { role };
+  if (studentIdFromDoc) payload.studentId = studentIdFromDoc;
+  await setDoc(userRef, payload, { merge: true });
+      if (typeof window !== 'undefined') localStorage.setItem('pendingRole', role);
+      if (role === 'teacher') router.push('/teacher');
+      else if (role === 'admin') router.push('/admin');
+      else if (role === 'parent') router.push('/parent');
     } catch (err:any) {
       setError(err.message || 'Login failed');
     } finally { setLoading(false); }
@@ -86,40 +87,33 @@ function LoginForm(){
                 </div>
               </div>
               
-              {role !== 'parent' && (
-                <div>
-                  <label className="block text-sm font-medium text-midnight_text mb-2">Email Address</label>
-                  <div className="relative">
-                    <input 
-                      type="email" 
-                      value={email} 
-                      onChange={e=>setEmail(e.target.value)} 
-                      required 
-                      placeholder="user@example.com" 
-                      className="w-full pl-12" 
-                    />
-                    <Icon icon="solar:letter-bold" className="absolute left-4 top-1/2 -translate-y-1/2 text-grey text-lg" />
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-midnight_text mb-2">Email Address</label>
+                <div className="relative">
+                  <input 
+                    type="email" 
+                    value={email} 
+                    onChange={e=>setEmail(e.target.value)} 
+                    required 
+                    placeholder="user@example.com" 
+                    className="w-full pl-12" 
+                  />
+                  <Icon icon="solar:letter-bold" className="absolute left-4 top-1/2 -translate-y-1/2 text-grey text-lg" />
                 </div>
-              )}
+              </div>
               
               <div>
-                <label className="block text-sm font-medium text-midnight_text mb-2">
-                  {role==='parent' ? 'Student ID' : 'Password'}
-                </label>
+                <label className="block text-sm font-medium text-midnight_text mb-2">Password</label>
                 <div className="relative">
                   <input 
                     type="password" 
                     value={password} 
                     onChange={e=>setPassword(e.target.value)} 
                     required 
-                    placeholder={role==='parent' ? 'Enter Student ID' : '••••••••'} 
+                    placeholder="••••••••" 
                     className="w-full pl-12" 
                   />
-                  <Icon 
-                    icon={role === 'parent' ? "solar:card-bold" : "solar:lock-password-bold"} 
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-grey text-lg" 
-                  />
+                  <Icon icon="solar:lock-password-bold" className="absolute left-4 top-1/2 -translate-y-1/2 text-grey text-lg" />
                 </div>
               </div>
               

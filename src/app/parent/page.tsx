@@ -1,6 +1,8 @@
 "use client";
-import Protected from '@/components/portal/Protected';
+import Protected from '@/components/Protected';
 import { useAuth } from '@/contexts/AuthContext';
+import { collection, getDocs, query, where, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useEffect, useState } from 'react';
 import { fetchStudent, getAttendanceMonth, getResults } from '@/lib/data';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
@@ -82,6 +84,7 @@ function ParentDashboard(){
           </table>
         </div>
       </div>
+      {/* Removed library preview conflicting implementation during merge */}
     </div>
   );
 }
