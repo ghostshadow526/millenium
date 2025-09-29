@@ -17,17 +17,19 @@ function ParentDashboard(){
   const { roleInfo } = useAuth();
   const studentId = roleInfo?.studentId;
   const [info, setInfo] = useState<any | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [monthDate, setMonthDate] = useState(new Date());
   const [attendanceMap, setAttendanceMap] = useState<Record<string, boolean>>({});
   const [term, setTerm] = useState('term1');
   const [results, setResultsState] = useState<any | null>(null);
 
-  useEffect(()=>{ (async()=>{ if(!studentId) return; setInfo(await fetchStudent(studentId)); })(); }, [studentId]);
+  useEffect(()=>{ (async()=>{ if(!studentId) return; const s = await fetchStudent(studentId); if(!s) setNotFound(true); else { setInfo(s); setNotFound(false);} })(); }, [studentId]);
   useEffect(()=>{ (async()=>{ if(!studentId) return; const yr = monthDate.getFullYear(); const m = monthDate.getMonth()+1; setAttendanceMap(await getAttendanceMonth(studentId, yr, m)); })(); }, [studentId, monthDate]);
   useEffect(()=>{ (async()=>{ if(!studentId) return; setResultsState(await getResults(studentId, term)); })(); }, [studentId, term]);
 
   function daysInView(){ const start = startOfMonth(monthDate); const end = endOfMonth(monthDate); return eachDayOfInterval({ start, end }); }
   if(!studentId) return <p className="text-center text-white/80 py-10">No student linked.</p>;
+  if(notFound) return <p className="text-center text-red-400 py-10">Student ID not found. Please verify the ID or relink the account.</p>;
   if(!info) return <p className="text-center text-white/80 py-10">Loading...</p>;
 
   return (

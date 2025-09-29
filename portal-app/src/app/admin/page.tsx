@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { addStudent, searchStudents, fetchStudent, fetchStudentsPage } from '@/lib/data';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import QRCode from 'qrcode';
+import toast from 'react-hot-toast';
 
 export default function AdminPage(){
   return <Protected allowed={['admin']}><AdminDashboard/></Protected>;
@@ -37,7 +39,32 @@ function AdminDashboard(){
   async function loadInitialPage(){ const { students, cursor } = await fetchStudentsPage(10); setStudentResults(students); setPageCursor(cursor); }
   async function loadMore(){ if(!pageCursor) return; const { students, cursor } = await fetchStudentsPage(10, pageCursor); setStudentResults(prev=>[...prev, ...students]); setPageCursor(cursor); }
   async function loadSearch(){ if(!studentSearch.trim()){ setStudentResults([]); return; } const res = await searchStudents(studentSearch.trim()); setStudentResults(res); }
-  async function openEdit(id:string){ const data = await fetchStudent(id); if(!data) return; setEditId(id); setEditFirst(data.firstName); setEditLast(data.lastName); setEditClass(data.classLevel); setEditMsg(null); }
+  async function refreshCurrent(){ if(studentSearch.trim()){ await loadSearch(); } else { await loadInitialPage(); } }
+  async function generateQrFor(id:string){
+    if(!id){ toast.error('Missing student ID'); return; }
+    try {
+      const qrUrl = `${window.location.origin}/student-id/${id}`;
+      const qrDataUrl = await QRCode.toDataURL(qrUrl, { width: 200, margin:2, color:{ dark:'#000000', light:'#ffffff'} });
+      await updateDoc(doc(db,'students',id), { 
+        qrCode: qrDataUrl,
+        qrGeneratedAt: new Date(),
+        qrGeneratedBy: 'admin',
+        qrHistory: [{ generatedAt: new Date(), generatedBy: 'admin' }]
+      });
+      toast.success('QR code generated');
+      // mutate local state
+      setStudentResults(prev=> prev.map(s=> s.id===id ? { ...s, qrCode: qrDataUrl } : s));
+    } catch(err:any){
+      console.error('QR generation failed', err);
+      toast.error(err.message || 'Failed to generate QR');
+    }
+  }
+  async function openEdit(id:string){
+    if(!id){ toast.error('Missing student ID'); return; }
+    const data = await fetchStudent(id);
+    if(!data){ toast.error('Student not found'); return; }
+    setEditId(id); setEditFirst(data.firstName||''); setEditLast(data.lastName||''); setEditClass(data.classLevel||''); setEditMsg(null);
+  }
   async function saveEdit(e:React.FormEvent){ e.preventDefault(); if(!editId) return; try { await setDoc(doc(db,'students',editId), { firstName:editFirst,lastName:editLast,classLevel:editClass }, { merge:true }); setEditMsg('Updated'); await loadSearch(); setTimeout(()=>setEditMsg(null),1500); } catch(err:any){ setEditMsg(err.message); } }
   async function deleteStudent(id:string){ if(typeof window!=='undefined' && !confirm('Delete student permanently?')) return; try { await setDoc(doc(db,'students',id), { deleted:true }, { merge:true }); setStudentResults(r=>r.filter(s=>s.id!==id)); } catch(err){ console.error(err); } }
   async function createTeacher(e:React.FormEvent){ e.preventDefault(); setTMsg(null); try { const cred = await createUserWithEmailAndPassword(auth, tEmail.trim(), tPassword); await setDoc(doc(db,'users',cred.user.uid), { role:'teacher', classLevels: tClasses.split(',').map(c=>c.trim()).filter(Boolean) }, { merge:true }); setTMsg('Teacher account created'); setTEmail(''); setTPassword(''); } catch(err:any){ setTMsg(err.message); } }
@@ -85,7 +112,7 @@ function AdminDashboard(){
         {studentResults.length>0 && (
           <div className="overflow-auto">
             <table className="table">
-              <thead><tr><th>Photo</th><th>Name</th><th>ID</th><th>Class</th><th></th></tr></thead>
+              <thead><tr><th>Photo</th><th>Name</th><th>ID</th><th>Class</th><th>QR</th><th></th></tr></thead>
               <tbody>
                 {studentResults.map(s=>(
                   <tr key={s.id}>
@@ -93,6 +120,16 @@ function AdminDashboard(){
                     <td>{s.firstName} {s.lastName}</td>
                     <td><span className="badge">{s.id}</span></td>
                     <td>{s.classLevel}</td>
+                    <td>
+                      {s.qrCode ? (
+                        <div className="flex flex-col items-start gap-1">
+                          <img src={s.qrCode} className="w-14 h-14 object-contain border border-white/10 rounded" />
+                          <span className="text-[10px] text-green-400">Has QR</span>
+                        </div>
+                      ) : (
+                        <button type="button" className="btn outline text-xs" onClick={()=>generateQrFor(s.id)}>Generate</button>
+                      )}
+                    </td>
                     <td className="flex gap-2">
                       <button className="btn outline" onClick={()=>openEdit(s.id)} type="button">Edit</button>
                       <button className="btn outline" onClick={()=>deleteStudent(s.id)} type="button">Delete</button>

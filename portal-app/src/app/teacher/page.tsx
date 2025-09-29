@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Student } from '@/types';
 import { searchStudentsByName, getStudentsByClass, markAttendance } from '@/lib/data';
@@ -27,29 +28,46 @@ function TeacherDashboard() {
 
   const classes = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Form 1', 'Form 2', 'Form 3'];
 
+  // Fetch students whenever filters change while on students tab
   useEffect(() => {
     if (activeTab === 'students') {
       fetchStudents();
     }
   }, [activeTab, selectedClass, searchTerm]);
 
-  const fetchStudents = async () => {
-    setLoading(true);
+  // Also load an initial list for the overview metrics so counts are visible
+  useEffect(() => {
+    if (students.length === 0) {
+      fetchStudents(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchStudents = async (initial=false) => {
+    setLoading(prev => initial ? prev : true);
     try {
       let fetchedStudents: Student[] = [];
-      
-      if (searchTerm.trim()) {
-        fetchedStudents = await searchStudentsByName(searchTerm.trim());
-      } else if (selectedClass) {
-        fetchedStudents = await getStudentsByClass(selectedClass);
+      if (activeTab === 'students') {
+        if (searchTerm.trim()) {
+          fetchedStudents = await searchStudentsByName(searchTerm.trim());
+        } else if (selectedClass) {
+          fetchedStudents = await getStudentsByClass(selectedClass);
+        } else {
+          fetchedStudents = await searchStudentsByName('');
+        }
       } else {
+        // Overview: just get a base list (no filter). Using searchStudentsByName('') for normalization.
         fetchedStudents = await searchStudentsByName('');
       }
-      
+      // Ensure name fallback so UI never blank
+      fetchedStudents = fetchedStudents.map(s => ({
+        ...s,
+        name: s.name || [s.firstName, s.lastName].filter(Boolean).join(' ').trim() || s.rollNumber
+      }));
       setStudents(fetchedStudents);
     } catch (error) {
       console.error('Error fetching students:', error);
-      toast.error('Failed to load students');
+      if(!initial) toast.error('Failed to load students');
     } finally {
       setLoading(false);
     }
@@ -187,7 +205,7 @@ function TeacherDashboard() {
                 </select>
 
                 <button
-                  onClick={fetchStudents}
+                  onClick={() => fetchStudents()}
                   disabled={loading}
                   className="btn btn-primary"
                 >
@@ -207,6 +225,9 @@ function TeacherDashboard() {
             </div>
 
             {/* Students List */}
+            <div className="flex justify-end">
+              <Link href="/teacher/students" className="text-sm text-primary hover:underline font-medium">Go to full management view →</Link>
+            </div>
             {loading ? (
               <div className="card p-8 text-center">
                 <i className="fas fa-spinner fa-spin text-primary text-2xl mb-4"></i>
@@ -246,9 +267,10 @@ function TeacherDashboard() {
         )}
 
         {activeTab === 'attendance' && (
-          <div className="card p-6">
-            <h2 className="text-xl font-semibold text-midnight_text mb-4">Attendance Management</h2>
-            <p className="text-grey">Attendance tracking functionality coming soon...</p>
+          <div className="card p-6 space-y-4">
+            <h2 className="text-xl font-semibold text-midnight_text">Attendance Management</h2>
+            <p className="text-grey text-sm">Use the dedicated attendance page for a monthly matrix and CSV export.</p>
+            <Link href="/teacher/attendance" className="btn btn-primary w-fit text-sm"><i className="fas fa-table"></i> Open Attendance Page</Link>
           </div>
         )}
       </div>

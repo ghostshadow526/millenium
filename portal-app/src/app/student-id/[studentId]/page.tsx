@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Student } from '@/types';
+import Library from '@/components/Library';
 import { useParams } from 'next/navigation';
 
 export default function StudentIDPage() {
@@ -223,6 +224,22 @@ export default function StudentIDPage() {
             <i className="fas fa-arrow-left"></i>
             Go Back
           </button>
+          <a href="/parent/library" className="btn outline">
+            <i className="fas fa-book-open"></i>
+            Digital Library
+          </a>
+        </div>
+
+        {/* Embedded Library Preview */}
+        <div className="mt-16">
+          <h2 className="text-xl font-semibold text-midnight_text mb-4 flex items-center gap-2">
+            <i className="fas fa-book text-primary" />
+            Explore Our Digital Library
+          </h2>
+          <p className="text-sm text-grey mb-6">Boost knowledge with free public domain books. Search and read instantly below or open the full library.</p>
+          <div className="border border-primary/10 rounded-xl bg-white/60 backdrop-blur-sm p-4">
+            <Library />
+          </div>
         </div>
       </div>
     </div>

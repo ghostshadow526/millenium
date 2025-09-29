@@ -12,14 +12,13 @@ interface AuthContextType {
   roleInfo: RoleInfo | null;
   logout: () => Promise<void>;
   isOverrideAdmin: boolean;
-  bootstrapParentSession: (studentId: string) => void;
   enableAdminOverride: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null, loading: true, roleInfo: null,
   logout: async () => {}, isOverrideAdmin: false,
-  bootstrapParentSession: () => {}, enableAdminOverride: () => {}
+  enableAdminOverride: () => {}
 });
 
 export const AuthProvider: React.FC<{ children: any }> = ({ children }) => {
@@ -37,16 +36,12 @@ export const AuthProvider: React.FC<{ children: any }> = ({ children }) => {
         const snap = await getDoc(ref);
         if (snap.exists()) {
           const data = snap.data() as any;
-            setRoleInfo({ role: data.role as Role, studentId: data.studentId, classLevels: data.classLevels });
+          setRoleInfo({ role: data.role as Role, studentId: data.studentId, classLevels: data.classLevels });
         } else {
           if (pendingRole) setRoleInfo({ role: pendingRole }); else setRoleInfo(null);
         }
       } else {
-        const parentSession = typeof window !== 'undefined' ? localStorage.getItem('parentSession') : null;
-        if (parentSession) {
-          try { const parsed = JSON.parse(parentSession); if (parsed.studentId) setRoleInfo({ role: 'parent', studentId: parsed.studentId }); else setRoleInfo(null); }
-          catch { setRoleInfo(null); }
-        } else { setRoleInfo(null); }
+        setRoleInfo(null);
       }
       setLoading(false);
       if (pendingRole && typeof window !== 'undefined') localStorage.removeItem('pendingRole');
@@ -55,16 +50,8 @@ export const AuthProvider: React.FC<{ children: any }> = ({ children }) => {
   }, []);
 
   async function logout() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('overrideAdmin');
-      localStorage.removeItem('parentSession');
-    }
+    if (typeof window !== 'undefined') { localStorage.removeItem('overrideAdmin'); }
     if (auth.currentUser) await signOut(auth);
-  }
-
-  function bootstrapParentSession(studentId: string) {
-    if (typeof window !== 'undefined') localStorage.setItem('parentSession', JSON.stringify({ studentId }));
-    setRoleInfo({ role: 'parent', studentId });
   }
 
   function enableAdminOverride() {
@@ -74,7 +61,7 @@ export const AuthProvider: React.FC<{ children: any }> = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, roleInfo: roleInfo || (overrideAdmin ? { role: 'admin' } : null), logout, isOverrideAdmin: overrideAdmin, bootstrapParentSession, enableAdminOverride }}>
+    <AuthContext.Provider value={{ user, loading, roleInfo: roleInfo || (overrideAdmin ? { role: 'admin' } : null), logout, isOverrideAdmin: overrideAdmin, enableAdminOverride }}>
       {children}
     </AuthContext.Provider>
   );
